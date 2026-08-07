@@ -1,0 +1,56 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace local_videoguard;
+
+use local_videoguard\task\segment_video;
+
+/**
+ * Queues segmentation whenever an interactive video activity is created or saved.
+ *
+ * @package    local_videoguard
+ * @copyright  2026 Aditek / Angel Aligner
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class observer {
+
+    /**
+     * @param \core\event\course_module_created $event
+     */
+    public static function course_module_created(\core\event\course_module_created $event): void {
+        self::maybe_queue($event);
+    }
+
+    /**
+     * @param \core\event\course_module_updated $event
+     */
+    public static function course_module_updated(\core\event\course_module_updated $event): void {
+        self::maybe_queue($event);
+    }
+
+    /**
+     * Queues only for interactive video, and only from a real activity save.
+     *
+     * @param \core\event\base $event
+     */
+    protected static function maybe_queue(\core\event\base $event): void {
+        $other = $event->other ?? [];
+        if (($other['modulename'] ?? '') !== 'interactivevideo') {
+            return;
+        }
+        segment_video::queue((int)$event->objectid);
+    }
+}
