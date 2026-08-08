@@ -84,8 +84,12 @@ $course = get_course($cm->course);
 // restrictions, and whether the activity is visible to this user at all.
 require_login($course, false, $cm);
 
+$mode = get_config('local_videoguard', 'delivery') ?: 'securelink';
+
+// The shared secret only exists to stand in for a session the web server cannot
+// read. In gatekeeper mode there is a real session check, so it is not required.
 $secret = $CFG->videoguard_secret ?? '';
-if ($secret === '') {
+if ($mode === 'securelink' && $secret === '') {
     throw new moodle_exception('misconfigured', 'local_videoguard');
 }
 
@@ -98,7 +102,7 @@ if (!is_readable($source)) {
 }
 
 $expires = time() + VIDEOGUARD_TTL;
-$base = $CFG->wwwroot . '/hls/iv' . (int)$cm->instance . '/';
+$instance = (int)$cm->instance;
 $out = [];
 
 foreach (file($source, FILE_IGNORE_NEW_LINES) as $line) {
@@ -108,9 +112,17 @@ foreach (file($source, FILE_IGNORE_NEW_LINES) as $line) {
         continue;
     }
     $segment = basename(trim($line));
-    $uri = '/hls/iv' . (int)$cm->instance . '/' . $segment;
-    $sig = local_videoguard_sign($uri, $expires, $secret);
-    $out[] = $base . $segment . '?st=' . $sig . '&e=' . $expires;
+
+    if ($mode === 'securelink') {
+        // The web server validates a signature it can check without PHP.
+        $uri = '/hls/iv' . $instance . '/' . $segment;
+        $sig = local_videoguard_sign($uri, $expires, $secret);
+        $out[] = $CFG->wwwroot . $uri . '?st=' . $sig . '&e=' . $expires;
+    } else {
+        // Every segment goes back through Moodle, which re-checks the session.
+        $out[] = $CFG->wwwroot . '/local/videoguard/segment.php/'
+            . $cm->id . '/' . $segment;
+    }
 }
 
 // The manifest is per-user and time-limited, so it must never be cached anywhere -

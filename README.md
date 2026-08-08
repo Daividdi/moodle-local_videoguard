@@ -57,12 +57,30 @@ thought, not at an adversary who already has better options.
 
 - Moodle 4.4+ (needs `\core\hook\output\before_footer_html_generation`)
 - `mod_interactivevideo`
-- **nginx** with `--with-http_secure_link_module` (in the official image already)
 - **ffmpeg** reachable by the process that runs Moodle cron
+- A delivery backend, either:
+  - **nginx** with `--with-http_secure_link_module` (in the official image already), or
+  - **Apache** with `mod_xsendfile`, or nginx, for the session-check mode
 
-> The nginx dependency is real. On Apache there is no `secure_link` equivalent, and
-> the delivery layer would have to be rebuilt — either serving segments through PHP,
-> or `mod_rewrite` in front of a PHP gatekeeper.
+## Delivery modes
+
+Set under *Site administration → Plugins → Local plugins → Video guard*.
+
+**Signed URL** (`securelink`) — the web server validates a signature by itself, so
+media never touches PHP. Requires nginx. The signature stands in for a session,
+which is exactly its weakness: a copied URL keeps working, logged in or not, until
+it expires, and the window cannot be short because hls.js fetches a VOD playlist
+once.
+
+**Session check + send-file** (`xsendfile`) — every segment goes back through
+Moodle, which re-checks enrolment and availability, then hands the file to the web
+server via `X-Sendfile` (Apache) or `X-Accel-Redirect` (nginx). A copied URL is
+worthless to anyone not logged in, and there is no expiry window at all. The cost is
+one Moodle bootstrap per segment; the worker is released the moment the header is
+written, so it is not a held connection.
+
+**Where both are available, prefer the session check.** The signed URL exists for
+the case where the web server cannot consult a session, not because it is stronger.
 
 ## Installation
 
