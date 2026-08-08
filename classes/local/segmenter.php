@@ -117,11 +117,16 @@ class segmenter {
             ->get_local_path_from_storedfile($file, true);
 
         // -c copy: remux only, no re-encode. Lossless, and roughly a second per
-        // 100 MB. The third data track some of these files carry is dropped by the
-        // explicit -map, otherwise ffmpeg refuses to mux it into MPEG-TS.
+        // 100 MB. The explicit -map drops the stray data track some files carry,
+        // which ffmpeg otherwise refuses to mux into MPEG-TS.
+        //
+        // The '?' on the audio map makes it optional. Without it ffmpeg aborts with
+        // "Stream map '0:a:0' matches no streams" on any silent video - screen
+        // captures and exported animations routinely have no audio track at all,
+        // and one of those is enough to fail the whole job.
         $cmd = sprintf(
             '/usr/bin/ffmpeg -hide_banner -loglevel error -y -i %s ' .
-            '-map 0:v:0 -map 0:a:0 -c copy ' .
+            '-map 0:v:0 -map 0:a:0? -c copy ' .
             '-f hls -hls_time %d -hls_list_size 0 -hls_playlist_type vod ' .
             '-hls_segment_filename %s %s 2>&1',
             escapeshellarg($source),

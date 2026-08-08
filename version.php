@@ -17,7 +17,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_videoguard';
-$plugin->version   = 2026080800;
+$plugin->version   = 2026080801;
 $plugin->requires  = 2024100700;
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = 'v1.3.0';
+$plugin->release   = 'v1.3.1';
