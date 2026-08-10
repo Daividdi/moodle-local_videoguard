@@ -47,9 +47,36 @@ Two limits worth stating plainly:
   is four hours. That bounds sharing and makes a copied URL useless the next day; it
   is not a sixty-second token, and it cannot be.
 
-The player overlay is removable from the developer console, deliberately. It is
-aimed at the ordinary user who would otherwise film the screen without a second
-thought, not at an adversary who already has better options.
+### The overlay is on the screen, not in the file
+
+This is the limit that matters most, and it is easy to assume otherwise.
+
+The viewer's name and email are drawn as an HTML element over the player. **Nothing
+is burned into the video itself** — `ffmpeg` runs with `-c copy`, a remux, and no
+video filter touches the frames.
+
+So:
+
+| How the video escapes | Traceable? |
+| --- | --- |
+| Screen recording, or a phone pointed at the monitor | **yes** — the overlay is in the recording |
+| Segments captured and remuxed back into a file | **no** — that file carries no mark at all |
+
+The delivery controls make the second case hard: a segment fetched without a valid
+signature or session is refused, and reassembling a film means collecting hundreds of
+pieces. But if someone does it, what they end up with is clean.
+
+Burning a per-viewer mark into the frames would mean transcoding the whole library
+once per viewer. For a library of a few gigabytes that is not a tuning decision, it
+is a different product — so this is a stated limitation, not an oversight.
+
+**A watermarked PDF does not have this weakness**: there the mark is inside the file
+and survives being downloaded and forwarded. If your most sensitive material can be a
+document rather than a video, it is the stronger medium.
+
+The overlay is also removable from the developer console, deliberately. It is aimed
+at the ordinary user who would otherwise film the screen without a second thought,
+not at an adversary who already has better options.
 
 ---
 
